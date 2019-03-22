@@ -1,0 +1,7 @@
+digraph "tree-1" {
+	"1-1" [color="#fb1b00"]
+	"1-2" [color="#fa263d"]
+	"1-1" -> "1-2" [color=black]
+	"1-3" [color="#fc2a83"]
+	"1-1" -> "1-3" [color=black]
+}
