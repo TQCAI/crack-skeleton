@@ -1,8 +1,11 @@
 
 # crack-skeleton
 
----
+use method:
+```bash
+python skeleton.py
+```
 
-url=https://github.com/TQCAI/crack-skeleton
->I'am as nice person ,please star me
-    
+output:
+![](figures/myplot.png)
+![](figures/myplot2.png)

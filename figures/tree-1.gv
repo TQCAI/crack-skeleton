@@ -4,4 +4,8 @@ digraph "tree-1" {
 	"1-1" -> "1-2" [color=black]
 	"1-3" [color="#fc2a83"]
 	"1-1" -> "1-3" [color=black]
+	"1-4" [color="#ac1682"]
+	"1-3" -> "1-4" [color=black]
+	"1-5" [color="#2d008b"]
+	"1-3" -> "1-5" [color=black]
 }

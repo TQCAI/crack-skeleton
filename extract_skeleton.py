@@ -8,21 +8,24 @@ from skeleton import *
 import utils
 import cv2
 from BFS import fun
+from scipy.misc import imsave
+
 
 if __name__ == '__main__':
     # 读取灰度图片，并显示
-    #148
-    fname=324
+    #148 324 0
+    fname=548
 
     oImg=cv2.imread(f'img/{fname:04d}.jpg')[:,:,:3]
     img = cv2.imread(f'img/{fname:04d}_gt.jpg', 0)  # 直接读为灰度图像
+    mark=img.copy()
     img=utils.inverse(img)
     #原图
     # plt.imshow(img)
     # plt.show()
 
     blur=img
-    for i in range(7):
+    for i in range(2):
         blur = cv2.medianBlur(blur,5)
 
     #模糊图
@@ -38,10 +41,15 @@ if __name__ == '__main__':
     # 获取简单二值化的细化图，并显示
     iTwo = Two(img)
     iThin_2 = Thin(iTwo, array)
-
+    # 论文需要，对中心线进行处理
+    sb=iThin.copy()
+    sb=utils.inverse(sb)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    sb = cv2.dilate(sb, kernel)  # 膨胀
+    imsave('center-line.jpg',sb)
     #中心线提取后
     plt.imshow(iThin)
     plt.show()
-    fun(oImg,iThin)
+    fun(oImg,iThin,mark)
 
 

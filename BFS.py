@@ -4,6 +4,7 @@ import pylab as plt
 from ComputationalGeometry import *
 from color_index import *
 from graphviz import Digraph
+from scipy.misc import imsave
 
 #8连通分量
 dt=[
@@ -16,11 +17,18 @@ class Node:
         self.lines=lines
         self.pts=pts
         self.children=[] # 后代也是树形结点
+        # # 名字
+        # self.name=""
+        # # 几何信息
+        # self.area=0
+        # self.length=0
+        # self.meanWidth=0
 
 # 颜色下标
-global ix,treeIndex
+global ix,treeIndex,ptID
 ix=0
 treeIndex=1
+ptID=1
 
 def isValid(x,y,img):
     bx,by=img.shape
@@ -44,7 +52,6 @@ def findStartPoint(x,y,img,vis,startTh=80):
                 vis[tx][ty] = 1
                 last = tx, ty
                 break  # 最大的区别，找到一个目标然后退出，只朝着一个方向跑
-    print(len(vl))
     # if len(vl)<startTh:
     #
     #     return None
@@ -101,7 +108,6 @@ def bfs(x,y,img,vis):
                 cur.pts+=child.pts
                 cur.lines.lines+=child.lines.lines
                 cur.children=[]
-            print(cur.children)
             return cur #完成操作
     # 如果完成的是单条裂缝
     lines = getLines(l)
@@ -113,9 +119,41 @@ def bfs(x,y,img,vis):
     # plt.imshow(canvas)
     # plt.show()
 
+def printLength(lines):
+    ans=0
+    for line in lines:
+        ans+=line.dist()
+    print(f"{ans:.2f}",end='\t')
+    return ans
 
-def displayTree(root,img):
-    global ix, treeIndex
+def printArea(branchPT,centerPT,mark,radius=15):
+    # print('branchPT',branchPT)
+    if branchPT is not None:
+        for x in range(branchPT[1]-radius,branchPT[1]+radius):
+            for y in range(branchPT[0]-radius,branchPT[0]+radius):
+                mark[x,y]=0
+    # BFS算面积
+    q = Queue()
+    u=(centerPT[1], centerPT[0])
+    q.put(u)
+    vis=np.zeros_like(mark)
+    vis[u] = 1
+    area = 0
+    while not q.empty():
+        cx, cy = q.get()
+
+        tmpL=[]
+        for dx, dy in dt: # 8连通遍历
+            tx, ty = cx + dx, cy + dy
+            if isValid(tx, ty,mark) and vis[tx][ty] == 0 and mark[tx][ty] >60:
+                q.put((tx, ty))
+                vis[tx][ty] = 1
+                area+=1
+    print(area,end='\t')
+    return area
+
+def displayTree(root,img,mark):
+    global ix, treeIndex,ptID
     g = Digraph(f'tree-{treeIndex}')
     preNode=None
 
@@ -128,12 +166,12 @@ def displayTree(root,img):
     # BFS 遍历
     q=Queue()
     q.put((root,''))
-    pts=[]
     while(not q.empty()):
         u=q.get()
         node=u[0]
         fatherName=u[1]
         lines = node.lines
+        pts=node.pts
         name=f'{treeIndex}-{nodeIndex}'
         color=color_index[ix%len(color_index)]
         # 画裂缝
@@ -144,10 +182,13 @@ def displayTree(root,img):
         cPt=utils.Point2tuple(cPt)
         font = cv2.FONT_HERSHEY_COMPLEX_SMALL  # tuple(map(int,self.pts[-1]))
         cv2.putText(canvas, name, cPt, font, 1, (255, 255, 255), 2)
-        # 添加关节点
+        # 画关节点
+        spt=None
         if node is not root:
             spt=lines[0][0]
-            pts.append(spt)
+            cv2.circle(canvas, utils.Point2tuple(spt), 7, (0, 0, 0), 2)
+            # cv2.putText(canvas, f"pt-{ptID}", txtPt, font, 1 , (255, 255, 255), 1)
+            # ptID+=1
         # 添加孩子
         for child in node.children:
             q.put((child,name))
@@ -157,15 +198,19 @@ def displayTree(root,img):
             g.edge(fatherName,name,color='black')
         ix+=1
         nodeIndex+=1
-    # 画关节点
-    for pt in pts:
-        cv2.circle(canvas,utils.Point2tuple(pt),7,(255,0,0),2)
+        # 展示几何信息
+        print(name,end='\t')
+        length=printLength(lines)
+        area=printArea(spt,pts[len(pts)//2],mark)
+        print(f"{area/length:.2f}")
+
     plt.imshow(canvas)
     plt.show()
     g.view()
     treeIndex+=1
 
-def fun(img,crack):
+def fun(img,crack,mark):
+    print('ID\tlength\tarea\tmean width')
     crackTrees=[]
     vis=np.zeros_like(crack, dtype='uint8')
     for x,rows in enumerate(crack):
@@ -173,14 +218,14 @@ def fun(img,crack):
             if elem==0 and vis[x,y]==0: #发现了中心线
                 #首先跑到头
                 last=findStartPoint(x, y, crack, vis)
-                print(last)
                 if last is None:
                     continue
                 #找到起始点后，开始正式执行dfs
                 cx,cy=last
                 tree=bfs(cx, cy, crack, vis)
                 crackTrees.append(tree)
-                displayTree(tree, img)
+                displayTree(tree, img,mark)
+    imsave('ans.jpg',img)
     # displayTrees(crackTrees, img)
 
 
